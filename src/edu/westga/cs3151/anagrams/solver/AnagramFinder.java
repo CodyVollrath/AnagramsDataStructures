@@ -2,7 +2,6 @@ package edu.westga.cs3151.anagrams.solver;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -68,16 +67,14 @@ public class AnagramFinder {
 	private void determineAnagram(String[] anagrams, String word){
 		int median = anagrams.length / 2;
 		int modLength = anagrams.length % 2;
-		if (median == 0 || this.isAnagram(anagrams[median], word)) {
-			if (this.isAnagram(anagrams[median], word) && this.isNotVisited(anagrams[median])) {
-				this.currentAnagram.add(anagrams[median]);
-				this.vistedWords.add(anagrams[median]);
-			}
-			
-			if (median == 0) {
-				return;
-			}
+		if (this.isAnagram(anagrams[median], word) && this.isNotVisited(anagrams[median])) {
+			this.currentAnagram.add(anagrams[median]);
+			this.vistedWords.add(anagrams[median]);
 		}
+		if (median == 0) {
+			return;
+		}
+
 		String[] leftArray;
 		String rightArray[];
 		if (modLength == 0) {
@@ -102,11 +99,13 @@ public class AnagramFinder {
 		Arrays.sort(wordChars);
 		String anagramSorted = new String(anagramChars);
 		String wordSorted = new String(wordChars);
-		if (anagramSorted.equals(wordSorted)) {
+		
+		if (wordSorted.contains(anagramSorted)) {
 			return true;
 		}
 		return false;
 	}
+	
 	private boolean isNotVisited(String mutation) {
 		return !this.vistedWords.contains(mutation);
 	}
