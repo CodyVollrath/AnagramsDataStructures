@@ -1,12 +1,12 @@
 package edu.westga.cs3151.anagrams.solver;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Scanner;
 import java.util.Stack;
+
 /**
  * The Class AnagramFinder
  * 
@@ -16,8 +16,7 @@ import java.util.Stack;
 public class AnagramFinder {
 
 	private List<String> wordBank;
-	private List<String> currentAnagram;
-	private List<String> vistedWords;
+	
 	/**
 	 * Instantiates a new anagram finder
 	 * 
@@ -27,9 +26,7 @@ public class AnagramFinder {
 	 * @param filename the name of the dictionary file used by this anagram finder
 	 */
 	public AnagramFinder(String filename) {
-		this.wordBank = new Stack<String>();
-		this.vistedWords = new ArrayList<String>();
-		this.currentAnagram = new ArrayList<String>();
+		this.wordBank = new ArrayList<String>();
 		try {
 			File file = new File(filename);
 			@SuppressWarnings("resource")
@@ -54,59 +51,63 @@ public class AnagramFinder {
 	 */
 	public ArrayList<ArrayList<String>> findAnagrams(String letters) {
 		ArrayList<ArrayList<String>> result = new ArrayList<ArrayList<String>>();
-		String[] anagrams = Arrays.copyOf(this.wordBank.toArray(), this.wordBank.size(), String[].class);
-		this.determineAnagram(anagrams, letters);
-		if (!this.currentAnagram.isEmpty()) {
-			result.add((ArrayList<String>) this.currentAnagram);
+		List<String> values = this.determineValidAnagrams(letters);
+		if (values != null) {
+			this.permutationOfSentence(new LetterSubtracter(letters), new Stack<String>(), values, result);
 		}
-		this.currentAnagram = new ArrayList<String>();
-		this.vistedWords = new ArrayList<String>();
 		return result;
 	}
 	
-	private void determineAnagram(String[] anagrams, String word){
-		int median = anagrams.length / 2;
-		int modLength = anagrams.length % 2;
-		if (this.isAnagram(anagrams[median], word) && this.isNotVisited(anagrams[median])) {
-			this.currentAnagram.add(anagrams[median]);
-			this.vistedWords.add(anagrams[median]);
-		}
-		if (median == 0) {
-			return;
-		}
-
-		String[] leftArray;
-		String rightArray[];
-		if (modLength == 0) {
-			leftArray = new String[median];
-			rightArray = new String[median];
-			leftArray = Arrays.copyOfRange(anagrams, 0, median);
-			rightArray = Arrays.copyOfRange(anagrams, median, anagrams.length);
-		} else {
-			leftArray = new String[median];
-			rightArray = new String[median+1];
-			leftArray = Arrays.copyOfRange(anagrams, 0, median);
-			rightArray = Arrays.copyOfRange(anagrams, median + 1, anagrams.length);
-		}
-		this.determineAnagram(leftArray, word);
-		this.determineAnagram(rightArray, word);
-   }
-	
-	private boolean isAnagram(String anagram, String word) {
-		char[] anagramChars = anagram.toCharArray();
-		char[] wordChars = word.toLowerCase().toCharArray();
-		Arrays.sort(anagramChars);
-		Arrays.sort(wordChars);
-		String anagramSorted = new String(anagramChars);
-		String wordSorted = new String(wordChars);
+	private List<String> removeInvalidWords(String letters) {
+		List<String> values = new ArrayList<String>();
 		
-		if (wordSorted.contains(anagramSorted)) {
-			return true;
+		for (String word : this.wordBank) {
+			for (int i = 0; i < word.length(); i++) {
+				String character = String.valueOf(word.charAt(i));
+				boolean areLettersContained = letters.contains(character);
+				if (!areLettersContained) {
+					break;
+				}
+				
+				if (i + 1 == word.length()) {
+					values.add(word);
+				}
+			}
 		}
-		return false;
+		return (!values.isEmpty()) ? values : null;
 	}
 	
-	private boolean isNotVisited(String mutation) {
-		return !this.vistedWords.contains(mutation);
+	private List<String> determineValidAnagrams(String letters){
+		List<String> filteredDictionary = this.removeInvalidWords(letters);
+		List<String> refinedDictionary = new ArrayList<String>();
+		if (filteredDictionary == null) {
+			return null;
+		}
+		LetterSubtracter inventory = new LetterSubtracter(letters);
+		for (String word : filteredDictionary) {
+			LetterSubtracter anagramInventory = new LetterSubtracter(word);
+			if (inventory.reduceLetters(anagramInventory) != null) {
+				refinedDictionary.add(word);
+			}
+		}
+		return refinedDictionary;
+	}
+	
+	private void permutationOfSentence(LetterSubtracter inventory, Stack<String> anagramStack, List<String> filteredList, ArrayList<ArrayList<String>> outputList) {
+		if (inventory.isEmpty()) {
+			ArrayList<String> anagram = new ArrayList<String>();
+			anagram.addAll(anagramStack);
+			outputList.add(anagram);
+			return;
+		}
+		
+		for (String word : filteredList) {
+			LetterSubtracter newInventory = inventory.reduceLetters(new LetterSubtracter(word));
+			if (newInventory != null) {
+				anagramStack.push(word);
+				permutationOfSentence(newInventory, anagramStack, filteredList, outputList);
+				anagramStack.pop();
+			}
+		}
 	}
 }
